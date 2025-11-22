@@ -15,37 +15,38 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install dependencies
+      - name: Install MLflow
         run: |
-          pip install mlflow pandas scikit-learn
+          pip install mlflow
 
       - name: Run MLflow project
         run: |
           cd MLProject
           mlflow run .
 
-      - name: Upload MLflow runs
+      - name: Upload MLflow runs to GitHub
         uses: actions/upload-artifact@v4
         with:
           name: mlflow-runs
           path: MLProject/mlruns/
 
-      - name: Find latest model and build Docker image
+      - name: Build Docker image
         run: |
           cd MLProject
-          MODEL_PATH=$(find mlruns -name "model" -type d | head -n1)
-          if [ -z "$MODEL_PATH" ]; then
+          # Cari folder model pertama
+          MODEL_DIR=$(find mlruns -name "model" -type d | head -n1)
+          if [ -z "$MODEL_DIR" ]; then
             echo "Model not found!"
             exit 1
           fi
-          echo "Building Docker image from $MODEL_PATH"
-          mlflow models build-docker -m "$MODEL_PATH" -n credit-score-model
+          echo "Found model at: $MODEL_DIR"
+          mlflow models build-docker -m "$MODEL_DIR" -n credit-score-model
 
       - name: Log in to Docker Hub
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      - name: Push Docker image to Docker Hub
+      - name: Push Docker image
         run: |
           docker tag credit-score-model ${{ secrets.DOCKER_USERNAME }}/credit-score-model:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/credit-score-model:latest
