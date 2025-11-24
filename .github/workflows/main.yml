@@ -1,52 +1,65 @@
-name: MLflow CI
+name: Retrain ML Model
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  train-model:
+  retrain:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: '3.12'
+          auto-activate-base: false
+          activate-environment: mlflow-env
+          environment-file: MLProject/conda.yaml
+          python-version: 3.10
 
-      - name: Install MLflow
+      - name: Show current directory structure
         run: |
-          pip install mlflow
+          echo "📁 Current Directory Structure:"
+          find . -type f -not -path "./\\.git/*" -not -path "./venv/*" -not -path "./__pycache__/*" | sort
 
-      - name: Run MLflow project
+      - name: Verify dataset existence
         run: |
-          cd MLProject
-          mlflow run .
-
-      - name: Upload MLflow runs to GitHub
-        uses: actions/upload-artifact@v4
-        with:
-          name: mlflow-runs
-          path: MLProject/mlruns/
-
-      - name: Build Docker image
-        run: |
-          cd MLProject
-          # Cari folder model pertama
-          MODEL_DIR=$(find mlruns -name "model" -type d | head -n1)
-          if [ -z "$MODEL_DIR" ]; then
-            echo "Model not found!"
+          if [ ! -f "MLProject/diabetes_dataset_2019_preprocessing.csv" ]; then
+            echo "Dataset 'diabetes_dataset_2019_preprocessing.csv' not found in MLProject/"
             exit 1
           fi
-          echo "Found model at: $MODEL_DIR"
-          mlflow models build-docker -m "$MODEL_DIR" -n credit-score-model
+          echo "Dataset found."
 
-      - name: Log in to Docker Hub
+      - name: Install Python dependencies
         run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          pip install -r MLProject/requirements.txt
+          pip install mlflow
 
-      - name: Push Docker image
+      - name: Activate Conda Environment and Run Training
+        shell: bash -l {0}
         run: |
-          docker tag credit-score-model ${{ secrets.DOCKER_USERNAME }}/credit-score-model:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/credit-score-model:latest
+          cd $GITHUB_WORKSPACE
+
+          # Verifikasi path ke file MLProject
+          if [ ! -f "MLProject/MLProject" ]; then
+            echo "File MLProject (MLproject) not found!"
+            exit 1
+          fi
+
+          echo "Starting MLflow training..."
+          mlflow run MLProject \
+            -P dataset="MLProject/diabetes_dataset_2019_preprocessing.csv" \
+            --env-manager=conda
+
+          echo "Model trained successfully"
+
+      - name: Show MLflow Run Summary
+        shell: bash -l {0}
+        run: |
+          echo "Listing MLflow runs..."
+          ls -R ./mlruns || echo "No mlruns directory found!"
