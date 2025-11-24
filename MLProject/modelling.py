@@ -26,9 +26,14 @@ if __name__ == "__main__":
     y_train = data[train_mask]['Diabetic']
     y_test = data[test_mask]['Diabetic']
 
-    # Ambil parameter dari CLI
+    # Ambil parameter
     n_estimators = int(sys.argv[1]) if len(sys.argv) > 1 else 100
     max_depth = int(sys.argv[2]) if len(sys.argv) > 2 else None
+
+    if str(max_depth).lower() == "null":
+        max_depth = None
+    else:
+        max_depth = int(max_depth)
 
     with mlflow.start_run():
         # Latih model dengan class_weight='balanced'
