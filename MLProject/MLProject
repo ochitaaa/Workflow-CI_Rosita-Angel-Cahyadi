@@ -1,8 +1,11 @@
-name: Credit Score Classification
-version: 1.0
+name: diabetes classification
 
 conda_env: conda.yaml
 
 entry_points:
   main:
-    command: "python modelling.py"
+    parameters:
+      n_estimators: {type: int, default: 100}
+      max_depth: {type: int, default: null}
+      dataset: {type: string, default: "Credit Score Dataset_preprocessing.csv"}
+    command: "python modelling.py {n_estimators} {max_depth} {dataset}"
