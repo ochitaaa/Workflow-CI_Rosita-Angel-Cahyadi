@@ -1,49 +1,80 @@
-import pandas as pd
-import os
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
-pd.set_option('display.max_columns', None)
-
-# Autolog
-if "MLFLOW_EXPERIMENT_ID" in os.environ:
-    del os.environ["MLFLOW_EXPERIMENT_ID"]
-    
 import mlflow
-mlflow.set_tracking_uri("http://127.0.0.1:5000")
-mlflow.set_experiment("Random Forest Credit Score Classification")
-mlflow.autolog()
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, f1_score, precision_recall_curve, auc
+import numpy as np
+import os
+import sys
+import warnings
 
-# Load Data
-df = pd.read_csv("/Users/Shared/Files From d.localized/Rosita/DICODING ASAH 2025/Proyek Membangun Sistem Machine Learning/Eksperimen_SML_Rosita_Angel_Cahyadi/preprocessing/Credit Score Dataset_preprocessing.csv")
+if __name__ == "__main__":
+    warnings.filterwarnings("ignore")
+    np.random.seed(42)
 
-# Pisahkan fitur dan target
-X = df.drop(columns=['Credit Score', 'is_train'])
-y = df['Credit Score']
-
-# Split menjadi train dan test berdasarkan kolom 'is_train'
-train_mask = df['is_train'] == 1
-test_mask = df['is_train'] == 0
-
-X_train = X[train_mask]
-X_test = X[test_mask]
-y_train = y[train_mask]
-y_test = y[test_mask]
-
-print("Training class distribution:\n", y_train.value_counts())
-print("\nTest class distribution:\n", y_test.value_counts())
-
-# Jalankan autolog
-with mlflow.start_run(run_name="RandomForest_Autolog"):
-    # Latih model
-    rf_model = RandomForestClassifier(
-        n_estimators=100,
-        random_state=42,
-        class_weight='balanced'
+    file_path = sys.argv[3] if len(sys.argv) > 3 else os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 
+        "Credit Score Dataset_preprocessing.csv"
     )
-    rf_model.fit(X_train, y_train)
-    
-    # Hasil prediksi
-    y_pred = rf_model.predict(X_test)
-    acc = accuracy_score(y_test, y_pred)
-    print("Accuracy (test):", acc)
-    print("\nClassification Report:\n", classification_report(y_test, y_pred))
+    data = pd.read_csv(file_path)
+
+    # Pisahkan fitur dan target
+    train_mask = data['is_train'] == 1
+    test_mask = data['is_train'] == 0
+
+    X_train = data[train_mask].drop(columns=['Diabetic', 'is_train'])
+    X_test = data[test_mask].drop(columns=['Diabetic', 'is_train'])
+    y_train = data[train_mask]['Diabetic']
+    y_test = data[test_mask]['Diabetic']
+
+    # Ambil parameter dari CLI
+    n_estimators = int(sys.argv[1]) if len(sys.argv) > 1 else 100
+    max_depth = int(sys.argv[2]) if len(sys.argv) > 2 else None
+
+    with mlflow.start_run():
+        # Latih model dengan class_weight='balanced'
+        model = RandomForestClassifier(
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            class_weight='balanced',
+            random_state=42
+        )
+        model.fit(X_train, y_train)
+
+        # Prediksi
+        y_pred = model.predict(X_test)
+        y_pred_proba = model.predict_proba(X_test)[:, 1]  # probabilitas kelas 'yes'
+
+        # Log metrik
+        accuracy = accuracy_score(y_test, y_pred)
+        f1_macro = f1_score(y_test, y_pred, average='macro')
+        mlflow.log_metric("accuracy", accuracy)
+        mlflow.log_metric("f1_macro", f1_macro)
+
+        # Log metrik tambahan
+        # 1. Precision-Recall AUC
+        from sklearn.preprocessing import LabelEncoder
+        le = LabelEncoder()
+        y_test_enc = le.fit_transform(y_test)
+        precision, recall, _ = precision_recall_curve(y_test_enc, y_pred_proba)
+        pr_auc = auc(recall, precision)
+        mlflow.log_metric("pr_auc", pr_auc)
+
+        # 2. F1-score per class
+        f1_per_class = f1_score(y_test, y_pred, average=None, labels=['no', 'yes'])
+        mlflow.log_metric("f1_no", f1_per_class[0])
+        mlflow.log_metric("f1_yes", f1_per_class[1])
+
+        # Log parameter
+        mlflow.log_param("n_estimators", n_estimators)
+        mlflow.log_param("max_depth", max_depth if max_depth else "None")
+        mlflow.log_param("class_weight", "balanced")
+
+        # Log model
+        input_example = X_train.head(5)
+        mlflow.sklearn.log_model(
+            sk_model=model,
+            artifact_path="model",
+            input_example=input_example
+        )
+
+        print(f"Model trained with accuracy: {accuracy:.4f}, F1-macro: {f1_macro:.4f}, PR-AUC: {pr_auc:.4f}")
