@@ -29,6 +29,7 @@ if __name__ == "__main__":
     data = pd.read_csv(file_path)
 
     # Pisahkan fitur dan target
+    data['is_train'] = data['is_train'].astype(int)
     train_mask = data['is_train'] == 1
     test_mask = data['is_train'] == 0
 
