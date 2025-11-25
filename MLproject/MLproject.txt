@@ -1,9 +1,0 @@
-name: workflow ci
-
-conda_env: conda.yaml
-
-entry_points:
-  main:
-    parameters:
-      dataset: {type: string, default: "diabetes_dataset_2019_preprocessing.csv"}
-    command: "python modelling.py {n_estimators} {max_depth} {dataset}"
