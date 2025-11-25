@@ -47,7 +47,7 @@ jobs:
 
           # Verifikasi path ke file MLProject
           if [ ! -f "MLProject/MLProject" ]; then
-            echo "File MLProject (MLproject) not found!"
+            echo "File MLProject (MLProject) not found!"
             exit 1
           fi
 
