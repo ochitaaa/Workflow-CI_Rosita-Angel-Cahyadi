@@ -20,7 +20,7 @@ jobs:
           auto-activate-base: false
           activate-environment: mlflow-env
           environment-file: MLProject/conda.yaml
-          python-version: 3.10
+          python-version: 3.12
 
       - name: Show current directory structure
         run: |
