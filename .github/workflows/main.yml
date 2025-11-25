@@ -19,7 +19,7 @@ jobs:
         with:
           auto-activate-base: false
           activate-environment: mlflow-env
-          environment-file: MLProject/conda.yaml
+          environment-file: MLproject/conda.yaml
           python-version: 3.12
 
       - name: Show current directory structure
@@ -29,15 +29,15 @@ jobs:
 
       - name: Verify dataset existence
         run: |
-          if [ ! -f "MLProject/diabetes_dataset_2019_preprocessing.csv" ]; then
-            echo "Dataset 'diabetes_dataset_2019_preprocessing.csv' not found in MLProject/"
+          if [ ! -f "MLproject/diabetes_dataset_2019_preprocessing.csv" ]; then
+            echo "Dataset 'diabetes_dataset_2019_preprocessing.csv' not found in MLproject/"
             exit 1
           fi
           echo "Dataset found."
 
       - name: Install Python dependencies
         run: |
-          pip install -r MLProject/requirements.txt
+          pip install -r MLproject/requirements.txt
           pip install mlflow
 
       - name: Activate Conda Environment and Run Training
@@ -45,15 +45,15 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
 
-          # Verifikasi path ke file MLProject
-          if [ ! -f "MLProject/MLProject" ]; then
-            echo "File MLProject (MLProject) not found!"
+          # Verifikasi path ke file MLproject
+          if [ ! -f "MLproject/MLproject" ]; then
+            echo "File MLproject (MLproject) not found!"
             exit 1
           fi
 
           echo "Starting MLflow training..."
-          mlflow run MLProject \
-            -P dataset="MLProject/diabetes_dataset_2019_preprocessing.csv" \
+          mlflow run MLproject \
+            -P dataset="MLproject/diabetes_dataset_2019_preprocessing.csv" \
             --env-manager=conda
 
           echo "Model trained successfully"
