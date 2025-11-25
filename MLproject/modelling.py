@@ -11,10 +11,21 @@ if __name__ == "__main__":
     warnings.filterwarnings("ignore")
     np.random.seed(42)
 
-    file_path = sys.argv[3] if len(sys.argv) > 3 else os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), 
-        "diabetes_dataset_2019_preprocessing.csv"
-    )
+    # Validasi jumlah argumen
+    if len(sys.argv) < 4:
+        raise ValueError("Harus menyediakan 3 argumen: n_estimators, max_depth, dataset")
+    
+    n_estimators = int(sys.argv[1])
+    max_depth_str = sys.argv[2]
+    file_path = sys.argv[3]
+
+    # Proses max_depth
+    if max_depth_str.lower() == "null":
+        max_depth = None
+    else:
+        max_depth = int(max_depth_str)
+
+    # Baca data
     data = pd.read_csv(file_path)
 
     # Pisahkan fitur dan target
@@ -25,15 +36,6 @@ if __name__ == "__main__":
     X_test = data[test_mask].drop(columns=['Diabetic', 'is_train'])
     y_train = data[train_mask]['Diabetic']
     y_test = data[test_mask]['Diabetic']
-
-    # Ambil parameter
-    n_estimators = int(sys.argv[1]) if len(sys.argv) > 1 else 100
-    max_depth = int(sys.argv[2]) if len(sys.argv) > 2 else None
-
-    if str(max_depth).lower() == "null":
-        max_depth = None
-    else:
-        max_depth = int(max_depth)
 
     with mlflow.start_run():
         # Latih model dengan class_weight='balanced'
@@ -71,7 +73,7 @@ if __name__ == "__main__":
 
         # Log parameter
         mlflow.log_param("n_estimators", n_estimators)
-        mlflow.log_param("max_depth", max_depth if max_depth else "None")
+        mlflow.log_param("max_depth", max_depth if max_depth is not None else "None")
         mlflow.log_param("class_weight", "balanced")
 
         # Log model
