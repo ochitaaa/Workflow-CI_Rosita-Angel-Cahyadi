@@ -5,8 +5,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import mlflow
 
+
 def main(args):
-    # Automatic run logging
+    # Setup MLflow
     mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "file://" + os.path.abspath("mlruns")))
     mlflow.set_experiment(args.experiment_name)
     mlflow.autolog()
@@ -20,7 +21,7 @@ def main(args):
     if target not in df.columns:
         raise ValueError(f"Target column '{target}' not found in dataset")
 
-    # Split based on is_train if available
+    # Split data using is_train column if available
     if is_train_col in df.columns:
         train_mask = df[is_train_col] == 1
         test_mask = df[is_train_col] == 0
@@ -30,27 +31,30 @@ def main(args):
 
         X_test = df.loc[test_mask].drop(columns=[target, is_train_col])
         y_test = df.loc[test_mask][target]
+
     else:
-        # Fallback: simple split
         from sklearn.model_selection import train_test_split
         X = df.drop(columns=[target])
         y = df[target]
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=args.random_state)
-
-    with mlflow.start_run():
-        model = RandomForestClassifier(
-            n_estimators=args.n_estimators,
-            random_state=args.random_state,
-            class_weight=(args.class_weight if args.class_weight.lower() != "none" else None)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=args.random_state
         )
 
-        model.fit(X_train, y_train)
-        preds = model.predict(X_test)
+    # Model WITHOUT mlflow.start_run()  (important!!)
+    model = RandomForestClassifier(
+        n_estimators=args.n_estimators,
+        random_state=args.random_state,
+        class_weight=(args.class_weight if args.class_weight.lower() != "none" else None)
+    )
 
-        acc = accuracy_score(y_test, preds)
-        print("Accuracy:", acc)
-        print("\nClassification Report:\n", classification_report(y_test, preds))
-        print("\nConfusion Matrix:\n", confusion_matrix(y_test, preds))
+    model.fit(X_train, y_train)
+    preds = model.predict(X_test)
+
+    acc = accuracy_score(y_test, preds)
+    print("Accuracy:", acc)
+    print("\nClassification Report:\n", classification_report(y_test, preds))
+    print("\nConfusion Matrix:\n", confusion_matrix(y_test, preds))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -61,5 +65,6 @@ if __name__ == "__main__":
     parser.add_argument("--random-state", type=int, default=42)
     parser.add_argument("--class-weight", type=str, default="balanced")
     parser.add_argument("--experiment-name", type=str, default="Random Forest Diabetes Classification")
+
     args = parser.parse_args()
     main(args)
