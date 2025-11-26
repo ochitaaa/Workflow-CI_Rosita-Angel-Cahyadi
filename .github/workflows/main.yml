@@ -21,16 +21,18 @@ jobs:
         activate-environment: mlflow-env
 
     - name: Verify Python
+      shell: bash -l {0}
       run: |
         python --version
         which python
 
     - name: Debug — list MLproject folder
+      shell: bash -l {0}
       run: |
-        echo "LIST ISI FOLDER MLproject:"
         ls -lah MLproject
 
     - name: Run MLflow Project
+      shell: bash -l {0}
       run: |
         mlflow run MLproject -e main -P data_path=diabetes_dataset_2019_preprocessing.csv
 
