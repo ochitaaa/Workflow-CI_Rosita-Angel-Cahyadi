@@ -5,15 +5,7 @@ conda_env: conda.yaml
 entry_points:
   main:
     parameters:
-      data_path: {type: str, default: "diabetes_dataset_2019_preprocessing.csv"}
-      n_estimators: {type: int, default: 100}
-      random_state: {type: int, default: 42}
-      class_weight: {type: str, default: "balanced"}
-      experiment_name: {type: str, default: "Random Forest Diabetes Classification"}
-    command: >
-      python modelling.py
-      --data-path {data_path}
-      --n-estimators {n_estimators}
-      --random-state {random_state}
-      --class-weight {class_weight}
-      --experiment-name {experiment_name}
+      data_path: {type: str}
+      target_col: {type: str, default: "Diabetic"}
+      is_train_col: {type: str, default: "is_train"}
+    command: "python modelling.py --data-path {data_path} --target-col {target_col} --is-train-col {is_train_col}"
