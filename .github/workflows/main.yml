@@ -1,10 +1,9 @@
-name: Workflow CI
+name: MLflow Skilled Project
 
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,31 +13,28 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Python
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
 
+    - name: Upgrade pip
+      run: python -m pip install --upgrade pip
+
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      run: pip install -r MLproject/requirements.txt
 
-    - name: Run preprocessing + modeling automation
-      run: |
-        python preprocessing/automate_diabetes.py
+    - name: Set MLflow Tracking URI
+      run: echo "MLFLOW_TRACKING_URI=file://$(pwd)/mlruns" >> $GITHUB_ENV
 
-    - name: Create artifacts folder
-      run: |
-        mkdir -p artifacts
-        cp model.pkl artifacts/
-        cp diabetes_dataset_2019_preprocessing.csv artifacts/
-        cp training_confusion_matrix.png artifacts/
-        cp training_precision_recall_curve.png artifacts/
-        cp training_roc_curve.png artifacts/
+    - name: Debug — list project folder
+      run: ls -R .
 
-    - name: Upload artifacts
+    - name: Run MLflow project
+      run: mlflow run MLproject/ -P data_path=MLproject/diabetes_dataset_2019_preprocessing.csv
+
+    - name: Upload MLruns artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ml-artifact-outputs
-        path: artifacts/
+        name: mlruns
+        path: mlruns
