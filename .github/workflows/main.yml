@@ -18,10 +18,13 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install MLflow CLI only
+        run: pip install mlflow==2.19.0
+
       - name: Set MLflow Tracking URI
         run: echo "MLFLOW_TRACKING_URI=file://$(pwd)/mlruns" >> $GITHUB_ENV
 
-      - name: Debug — list project folder
+      - name: List project structure
         run: ls -R .
 
       - name: Run MLflow Project
