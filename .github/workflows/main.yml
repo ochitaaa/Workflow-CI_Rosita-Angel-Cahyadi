@@ -1,65 +1,36 @@
-name: Retrain ML Model
+name: CI - MLflow Retrain
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   retrain:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Set up Conda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          auto-activate-base: false
-          activate-environment: mlflow-env
-          environment-file: MLproject/conda.yaml
-          python-version: 3.12
+    - name: Setup Miniconda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        auto-update-conda: true
+        environment-file: MLProject/conda.yaml
+        activate-environment: mlflow-env
 
-      - name: Show current directory structure
-        run: |
-          echo "📁 Current Directory Structure:"
-          find . -type f -not -path "./\\.git/*" -not -path "./venv/*" -not -path "./__pycache__/*" | sort
+    - name: Verify Python
+      run: |
+        python --version
+        which python
 
-      - name: Verify dataset existence
-        run: |
-          if [ ! -f "diabetes_dataset_2019_preprocessing.csv" ]; then
-            echo "Dataset 'diabetes_dataset_2019_preprocessing.csv' not found in root directory"
-            exit 1
-          fi
-          echo "Dataset found."
+    - name: Run MLflow Project
+      run: |
+        mlflow run MLProject -e main -P data_path=diabetes_dataset_2019_preprocessing.csv
 
-      - name: Install Python dependencies
-        run: |
-          pip install -r MLproject/requirements.txt
-          pip install mlflow
-
-      - name: Activate Conda Environment and Run Training
-        shell: bash -l {0}
-        run: |
-          cd $GITHUB_WORKSPACE
-
-          # Verifikasi path ke file MLproject
-          if [ ! -f "MLproject/MLproject" ]; then
-            echo "File MLproject (MLproject) not found!"
-            exit 1
-          fi
-
-          echo "Starting MLflow training..."
-          mlflow run MLproject \
-            -P dataset="diabetes_dataset_2019_preprocessing.csv" \
-            --env-manager=conda
-
-          echo "Model trained successfully"
-
-      - name: Show MLflow Run Summary
-        shell: bash -l {0}
-        run: |
-          echo "Listing MLflow runs..."
-          ls -R ./mlruns || echo "No mlruns directory found!"
+    - name: Upload MLruns artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: mlflow-artifacts
+        path: mlruns/
