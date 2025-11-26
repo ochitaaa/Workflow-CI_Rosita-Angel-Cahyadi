@@ -2,7 +2,7 @@ name: CI - MLflow Retrain
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
@@ -10,38 +10,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Set up job
-      run: echo "Starting CI job..."
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-    - name: Run actions/checkout@v3
-      uses: actions/checkout@v3
-
-    - name: Set up Python 3.12.7
-      uses: actions/setup-python@v4
+    - name: Setup Miniconda
+      uses: conda-incubator/setup-miniconda@v3
       with:
-        python-version: 3.12.7
+        auto-update-conda: true
+        environment-file: MLproject/conda.yaml
+        activate-environment: mlflow-env
 
-    - name: Check Env
+    - name: Verify Python
+      shell: bash -l {0}
       run: |
         python --version
-        pip --version
         which python
 
-    - name: Install dependencies
+    - name: Debug — list project folder
+      shell: bash -l {0}
       run: |
-        pip install -r MLproject/requirements.txt
+        ls -lah MLproject
 
-    - name: Set MLflow Tracking URI
+    - name: Run MLflow Project
+      shell: bash -l {0}
       run: |
-        export MLFLOW_TRACKING_URI=file:./mlruns
-
-    - name: Run mlflow project
-      run: |
-        mlflow run MLproject -e main -P data_path=diabetes_dataset_2019_preprocessing.csv
-
-    - name: Install Python dependencies
-      run: |
-        pip list
+        mlflow run MLproject \
+        -P data_path=diabetes_dataset_2019_preprocessing.csv \
+        -P target_col=Diabetic \
+        -P is_train_col=is_train
 
     - name: Upload MLruns artifact
       uses: actions/upload-artifact@v4
