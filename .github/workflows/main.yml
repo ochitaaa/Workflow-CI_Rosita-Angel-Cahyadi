@@ -27,7 +27,7 @@ jobs:
 
     - name: Run MLflow Project
       run: |
-        mlflow run MLProject -e main -P data_path=diabetes_dataset_2019_preprocessing.csv
+        mlflow run MLproject -e main -P data_path=diabetes_dataset_2019_preprocessing.csv
 
     - name: Upload MLruns artifact
       uses: actions/upload-artifact@v4
