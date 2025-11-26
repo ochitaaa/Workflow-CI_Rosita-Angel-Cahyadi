@@ -29,8 +29,8 @@ jobs:
 
       - name: Verify dataset existence
         run: |
-          if [ ! -f "MLproject/diabetes_dataset_2019_preprocessing.csv" ]; then
-            echo "Dataset 'diabetes_dataset_2019_preprocessing.csv' not found in MLproject/"
+          if [ ! -f "diabetes_dataset_2019_preprocessing.csv" ]; then
+            echo "Dataset 'diabetes_dataset_2019_preprocessing.csv' not found in root directory"
             exit 1
           fi
           echo "Dataset found."
@@ -53,7 +53,7 @@ jobs:
 
           echo "Starting MLflow training..."
           mlflow run MLproject \
-            -P dataset="MLproject/diabetes_dataset_2019_preprocessing.csv" \
+            -P dataset="diabetes_dataset_2019_preprocessing.csv" \
             --env-manager=conda
 
           echo "Model trained successfully"
