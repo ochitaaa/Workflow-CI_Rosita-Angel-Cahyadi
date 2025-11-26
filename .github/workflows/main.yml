@@ -13,23 +13,37 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Miniconda
+    - name: Setup Miniconda and create env from conda.yaml
       uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
+        python-version: 3.12
         environment-file: MLproject/conda.yaml
         activate-environment: mlflow-env
 
-    - name: Verify Python
+    - name: Verify env and MLflow exists
+      shell: bash -l {0}
       run: |
+        set -e
+        conda info --envs
+        echo "Attempt activating env..."
+        conda activate mlflow-env
+        echo "which python:" $(which python)
         python --version
-        which python
+        echo "pip list (top 50):"
+        pip list --format=columns | head -n 50
+        echo "mlflow location and version (if installed):"
+        which mlflow || true
+        mlflow --version || true
 
     - name: Run MLflow Project
+      shell: bash -l {0}
       run: |
+        set -e
+        conda activate mlflow-env
         mlflow run MLproject -e main -P data_path=diabetes_dataset_2019_preprocessing.csv
 
-    - name: Upload MLruns artifact
+    - name: Upload mlruns artifact
       uses: actions/upload-artifact@v4
       with:
         name: mlflow-artifacts
