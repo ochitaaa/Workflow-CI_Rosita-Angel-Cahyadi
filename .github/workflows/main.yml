@@ -10,31 +10,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - name: Set up job
+      run: echo "Starting CI job..."
 
-    - name: Setup Miniconda
-      uses: conda-incubator/setup-miniconda@v3
+    - name: Run actions/checkout@v3
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3.12.7
+      uses: actions/setup-python@v4
       with:
-        auto-update-conda: true
-        environment-file: MLproject/conda.yaml
-        activate-environment: mlflow-env
+        python-version: 3.12.7
 
-    - name: Verify Python
-      shell: bash -l {0}
+    - name: Check Env
       run: |
         python --version
+        pip --version
         which python
 
-    - name: Debug — list MLproject folder
-      shell: bash -l {0}
+    - name: Install dependencies
       run: |
-        ls -lah MLproject
+        pip install -r MLproject/requirements.txt
 
-    - name: Run MLflow Project
-      shell: bash -l {0}
+    - name: Set MLflow Tracking URI
+      run: |
+        export MLFLOW_TRACKING_URI=file:./mlruns
+
+    - name: Run mlflow project
       run: |
         mlflow run MLproject -e main -P data_path=diabetes_dataset_2019_preprocessing.csv
+
+    - name: Install Python dependencies
+      run: |
+        pip list
 
     - name: Upload MLruns artifact
       uses: actions/upload-artifact@v4
