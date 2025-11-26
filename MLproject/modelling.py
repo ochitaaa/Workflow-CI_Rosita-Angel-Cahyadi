@@ -1,96 +1,56 @@
-# -*- coding: utf-8 -*-
-"""
-modelling.py - Diabetes Classification for CI/CD
-Model klasifikasi diabetes dengan MLflow (tanpa autolog)
-"""
-
 import pandas as pd
-import mlflow
-import mlflow.sklearn
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import (
-    accuracy_score, f1_score, precision_recall_curve, auc,
-    classification_report, confusion_matrix
-)
-from sklearn.preprocessing import LabelEncoder
-import sys
 import os
+import argparse
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 
-def main():
-    print("Memulai training model diabetes...\n")
-    
-    # Baca dataset dari argumen CLI
-    if len(sys.argv) < 2:
-        raise ValueError("Harap berikan path dataset sebagai argumen pertama.")
-    dataset_path = sys.argv[1]
-    
-    df = pd.read_csv(dataset_path)
-    print(f"Dataset loaded: {df.shape}")
-    
-    # Persiapan data: gunakan kolom 'is_train' untuk split
-    train_mask = df['is_train'] == 1
-    test_mask = df['is_train'] == 0
+import mlflow
 
-    X_train = df[train_mask].drop(columns=['Diabetic', 'is_train'])
-    X_test = df[test_mask].drop(columns=['Diabetic', 'is_train'])
-    y_train = df[train_mask]['Diabetic']
-    y_test = df[test_mask]['Diabetic']
-    
-    print(f"Data split berdasarkan 'is_train': Train={len(y_train)}, Test={len(y_test)}")
-    
-    # Training model
-    print("\n🔧 Training Random Forest Classifier...")
-    model = RandomForestClassifier(
-        n_estimators=100,
-        max_depth=None,
-        class_weight='balanced',
-        random_state=42
-    )
-    model.fit(X_train, y_train)
-    
-    # Prediksi
-    y_pred = model.predict(X_test)
-    y_pred_proba = model.predict_proba(X_test)[:, 1]
-    
-    # Evaluasi
-    acc = accuracy_score(y_test, y_pred)
-    f1_macro = f1_score(y_test, y_pred, average='macro')
-    
-    # PR AUC
-    le = LabelEncoder()
-    y_test_enc = le.fit_transform(y_test)
-    precision, recall, _ = precision_recall_curve(y_test_enc, y_pred_proba)
-    pr_auc = auc(recall, precision)
-    
-    # Log ke MLflow
-    mlflow.log_metric("accuracy", acc)
-    mlflow.log_metric("f1_macro", f1_macro)
-    mlflow.log_metric("pr_auc", pr_auc)
-    
-    # Log parameter
-    mlflow.log_param("n_estimators", 100)
-    mlflow.log_param("max_depth", "None")
-    mlflow.log_param("class_weight", "balanced")
-    mlflow.log_param("test_size", len(y_test) / len(df))
-    
-    # Log model
-    input_example = X_train.head(5)
-    mlflow.sklearn.log_model(
-        sk_model=model,
-        artifact_path="model",
-        input_example=input_example
-    )
-    
-    # Tambahkan tag
-    mlflow.set_tag("model_type", "RandomForestClassifier")
-    mlflow.set_tag("problem_type", "binary_classification")
-    mlflow.set_tag("target", "Diabetic")
-    
-    print(f"\nHasil Evaluasi:")
-    print(f"   Accuracy: {acc:.4f}")
-    print(f"   F1-Macro: {f1_macro:.4f}")
-    print(f"   PR-AUC   : {pr_auc:.4f}")
-    print("\nModel berhasil dilatih dan disimpan di MLflow!")
+def main(args):
+    # MLflow autolog
+    mlflow.autolog()
+    mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000"))
+    mlflow.set_experiment(args.experiment_name)
+
+    # Baca dataset dari argumen
+    df = pd.read_csv(args.data_path)
+
+    X = df.drop(columns=[args.target_col, args.is_train_col])
+    y = df[args.target_col]
+
+    train_mask = df[args.is_train_col] == 1
+    test_mask = df[args.is_train_col] == 0
+
+    X_train = X[train_mask]
+    X_test = X[test_mask]
+    y_train = y[train_mask]
+    y_test = y[test_mask]
+
+    print("Training class distribution:\n", y_train.value_counts())
+    print("\nTest class distribution:\n", y_test.value_counts())
+
+    with mlflow.start_run(run_name="RandomForest_Diabetes_Autolog"):
+        rf_model = RandomForestClassifier(
+            n_estimators=args.n_estimators,
+            random_state=args.random_state,
+            class_weight=args.class_weight
+        )
+        rf_model.fit(X_train, y_train)
+
+        y_pred = rf_model.predict(X_test)
+        acc = accuracy_score(y_test, y_pred)
+        print("Accuracy (test):", acc)
+        print("\nClassification Report:\n", classification_report(y_test, y_pred))
+        print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-path", type=str, required=True)
+    parser.add_argument("--target-col", type=str, default="Diabetic")
+    parser.add_argument("--is-train-col", type=str, default="is_train")
+    parser.add_argument("--n-estimators", type=int, default=100)
+    parser.add_argument("--random-state", type=int, default=42)
+    parser.add_argument("--class-weight", type=str, default="balanced")
+    parser.add_argument("--experiment-name", type=str, default="Random Forest Diabetes Classification")
+    args = parser.parse_args()
+    main(args)
