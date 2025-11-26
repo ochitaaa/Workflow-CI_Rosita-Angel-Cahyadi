@@ -24,17 +24,11 @@ jobs:
     - name: Verify env and MLflow exists
       shell: bash -l {0}
       run: |
-        set -e
-        conda info --envs
-        echo "Attempt activating env..."
         conda activate mlflow-env
-        echo "which python:" $(which python)
+        which python
         python --version
-        echo "pip list (top 50):"
-        pip list --format=columns | head -n 50
-        echo "mlflow location and version (if installed):"
-        which mlflow || true
-        mlflow --version || true
+        pip show mlflow
+        mlflow --version
 
     - name: Run MLflow Project
       shell: bash -l {0}
