@@ -1,7 +1,9 @@
-name: MLflow Skilled Pipeline
+name: Workflow CI
 
 on:
   push:
+    branches: [ "main" ]
+  pull_request:
     branches: [ "main" ]
 
 jobs:
@@ -9,24 +11,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
     - name: Setup Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: "3.12"
 
     - name: Install dependencies
       run: |
-        pip install mlflow scikit-learn pandas matplotlib seaborn google-api-python-client google-auth-httplib2 google-auth-oauthlib
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-    - name: Run MLflow Project
+    - name: Run preprocessing + modeling automation
       run: |
-        mlflow run . -P data_path="diabetes_dataset_2019_preprocessing.csv"
+        python preprocessing/automate_diabetes.py
+
+    - name: Create artifacts folder
+      run: |
+        mkdir -p artifacts
+        cp model.pkl artifacts/
+        cp diabetes_dataset_2019_preprocessing.csv artifacts/
+        cp training_confusion_matrix.png artifacts/
+        cp training_precision_recall_curve.png artifacts/
+        cp training_roc_curve.png artifacts/
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: artifacts-output
+        name: ml-artifact-outputs
         path: artifacts/
