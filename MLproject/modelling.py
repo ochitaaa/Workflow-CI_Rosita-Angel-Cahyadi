@@ -1,47 +1,56 @@
-import pandas as pd
-import os
 import argparse
+import os
+import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
-
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import mlflow
 
 def main(args):
-    # MLflow autolog
-    mlflow.autolog()
-    mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000"))
+    # Automatic run logging
+    mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "file://" + os.path.abspath("mlruns")))
     mlflow.set_experiment(args.experiment_name)
+    mlflow.autolog()
 
-    # Baca dataset dari argumen
+    # Load dataset
     df = pd.read_csv(args.data_path)
 
-    X = df.drop(columns=[args.target_col, args.is_train_col])
-    y = df[args.target_col]
+    target = args.target_col
+    is_train_col = args.is_train_col
 
-    train_mask = df[args.is_train_col] == 1
-    test_mask = df[args.is_train_col] == 0
+    if target not in df.columns:
+        raise ValueError(f"Target column '{target}' not found in dataset")
 
-    X_train = X[train_mask]
-    X_test = X[test_mask]
-    y_train = y[train_mask]
-    y_test = y[test_mask]
+    # Split based on is_train if available
+    if is_train_col in df.columns:
+        train_mask = df[is_train_col] == 1
+        test_mask = df[is_train_col] == 0
 
-    print("Training class distribution:\n", y_train.value_counts())
-    print("\nTest class distribution:\n", y_test.value_counts())
+        X_train = df.loc[train_mask].drop(columns=[target, is_train_col])
+        y_train = df.loc[train_mask][target]
 
-    with mlflow.start_run(run_name="RandomForest_Diabetes_Autolog"):
-        rf_model = RandomForestClassifier(
+        X_test = df.loc[test_mask].drop(columns=[target, is_train_col])
+        y_test = df.loc[test_mask][target]
+    else:
+        # Fallback: simple split
+        from sklearn.model_selection import train_test_split
+        X = df.drop(columns=[target])
+        y = df[target]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=args.random_state)
+
+    with mlflow.start_run():
+        model = RandomForestClassifier(
             n_estimators=args.n_estimators,
             random_state=args.random_state,
-            class_weight=args.class_weight
+            class_weight=(args.class_weight if args.class_weight.lower() != "none" else None)
         )
-        rf_model.fit(X_train, y_train)
 
-        y_pred = rf_model.predict(X_test)
-        acc = accuracy_score(y_test, y_pred)
-        print("Accuracy (test):", acc)
-        print("\nClassification Report:\n", classification_report(y_test, y_pred))
-        print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
+        model.fit(X_train, y_train)
+        preds = model.predict(X_test)
+
+        acc = accuracy_score(y_test, preds)
+        print("Accuracy:", acc)
+        print("\nClassification Report:\n", classification_report(y_test, preds))
+        print("\nConfusion Matrix:\n", confusion_matrix(y_test, preds))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
