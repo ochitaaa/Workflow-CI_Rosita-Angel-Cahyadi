@@ -1,46 +1,32 @@
-name: CI - MLflow Retrain
+name: MLflow Skilled Pipeline
 
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch:
 
 jobs:
-  retrain:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - name: Checkout repo
+      uses: actions/checkout@v3
 
-    - name: Setup Miniconda
-      uses: conda-incubator/setup-miniconda@v3
+    - name: Setup Python
+      uses: actions/setup-python@v4
       with:
-        auto-update-conda: true
-        environment-file: MLproject/conda.yaml
-        activate-environment: mlflow-env
+        python-version: "3.12"
 
-    - name: Verify Python
-      shell: bash -l {0}
+    - name: Install dependencies
       run: |
-        python --version
-        which python
-
-    - name: Debug — list project folder
-      shell: bash -l {0}
-      run: |
-        ls -lah MLproject
+        pip install mlflow scikit-learn pandas matplotlib seaborn google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
     - name: Run MLflow Project
-      shell: bash -l {0}
       run: |
-        mlflow run MLproject \
-        -P data_path=diabetes_dataset_2019_preprocessing.csv \
-        -P target_col=Diabetic \
-        -P is_train_col=is_train
+        mlflow run . -P data_path="diabetes_dataset_2019_preprocessing.csv"
 
-    - name: Upload MLruns artifact
-      uses: actions/upload-artifact@v4
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
       with:
-        name: mlflow-artifacts
-        path: mlruns/
+        name: artifacts-output
+        path: artifacts/
