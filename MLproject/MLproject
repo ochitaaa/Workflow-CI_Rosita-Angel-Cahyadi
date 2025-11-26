@@ -5,7 +5,7 @@ conda_env: conda.yaml
 entry_points:
   main:
     parameters:
-      data_path: {type: str, default: "namadataset_preprocessing/diabetes_dataset_2019_preprocessing.csv"}
+      data_path: {type: str, default: "diabetes_dataset_2019_preprocessing.csv"}
       n_estimators: {type: int, default: 100}
       random_state: {type: int, default: 42}
       class_weight: {type: str, default: "balanced"}
