@@ -1,37 +1,23 @@
-name: MLflow Skilled Project
+name: workflow-ci
 
-on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch:
+on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v3
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+    - name: Install Conda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        activate-environment: mlflow-env
+        environment-file: conda.yaml
+        python-version: 3.10
 
-      - name: Install MLflow CLI only
-        run: pip install mlflow==2.19.0
+    - name: Install MLflow
+      run: pip install mlflow
 
-      - name: Set MLflow Tracking URI
-        run: echo "MLFLOW_TRACKING_URI=file://$(pwd)/mlruns" >> $GITHUB_ENV
-
-      - name: List project structure
-        run: ls -R .
-
-      - name: Run MLflow Project
-        run: mlflow run MLproject/ -P data_path=MLproject/diabetes_dataset_2019_preprocessing.csv
-
-      - name: Upload MLruns artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mlruns
-          path: mlruns
+    - name: Run MLflow project
+      run: mlflow run . -P data_path=diabetes_dataset_2019_preprocessing.csv
