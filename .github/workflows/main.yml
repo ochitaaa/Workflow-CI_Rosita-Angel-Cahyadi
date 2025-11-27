@@ -15,7 +15,7 @@ jobs:
       uses: conda-incubator/setup-miniconda@v3
       with:
         activate-environment: mlflow-env
-        environment-file: MLProject/conda.yaml
+        environment-file: MLproject/conda.yaml
         python-version: 3.10
 
     - name: Install MLflow
@@ -23,8 +23,8 @@ jobs:
 
     - name: Run MLflow Project
       run: |
-        mlflow run MLProject/ \
-        -P data_path=MLProject/diabetes_dataset_2019_preprocessing.csv
+        mlflow run MLproject/ \
+        -P data_path=MLproject/diabetes_dataset_2019_preprocessing.csv
         
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
