@@ -61,16 +61,20 @@ def main(args):
     print("Accuracy:", acc)
     print("\nClassification Report:\n", classification_report(y_test, preds))
 
-    # Simpan model ke MLflow (untuk build-docker)
+    # === SIMPAN MODEL ===
+    # 1. Simpan manual ke artifacts/ (untuk gambar & backup)
+    os.makedirs("artifacts", exist_ok=True)
+    with open("artifacts/model.pkl", "wb") as f:
+        pickle.dump(model, f)
+
+    # 2. Simpan ke MLflow (utama)
     mlflow.sklearn.log_model(model, "model")
-    
-    # Salin model ke Docker
+
+    # 3. Jaminan: Salin ke folder model yang valid untuk Docker
     import shutil
     run_id = mlflow.active_run().info.run_id
     model_artifact_path = os.path.join("mlruns", "0", run_id, "model")
     os.makedirs(model_artifact_path, exist_ok=True)
-    
-    # Salin model.pkl ke folder model
     shutil.copy("artifacts/model.pkl", os.path.join(model_artifact_path, "model.pkl"))
     
     # Buat file MLmodel minimal
@@ -85,3 +89,17 @@ flavors:
     pickled_model: model.pkl
     sklearn_version: 1.6.1
 """)
+
+    # === GAMBAR (opsional) ===
+    cm = confusion_matrix(y_test, preds)
+    plt.figure(figsize=(6, 4))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+    plt.title("Confusion Matrix")
+    plt.savefig("artifacts/training_confusion_matrix.png")
+    plt.close()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data_path", type=str, required=True)
+    args = parser.parse_args()
+    main(args)
