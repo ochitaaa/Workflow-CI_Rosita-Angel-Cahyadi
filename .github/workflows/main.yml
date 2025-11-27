@@ -53,4 +53,10 @@ jobs:
       - name: Upload to GitHub
         run: |
           echo "Simulasi upload ke GitHub"
-          echo "Download dari tab 'Artifacts' di halaman workflow."   
+          echo "Download dari tab 'Artifacts' di halaman workflow."
+
+      - name: Debug mlruns structure
+        run: |
+          find mlruns -name "model" -type d
+          echo "=== Full mlruns structure ==="
+          ls -R mlruns/    
