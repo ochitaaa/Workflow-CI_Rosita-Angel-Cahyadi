@@ -48,7 +48,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mlflow-artifacts
-          path: mlruns/
+          path: MLproject/mlruns/
 
       - name: Debug mlruns structure
         run: |
