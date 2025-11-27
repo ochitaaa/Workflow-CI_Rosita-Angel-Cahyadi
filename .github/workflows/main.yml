@@ -49,3 +49,8 @@ jobs:
         with:
           name: mlflow-artifacts
           path: mlruns/
+
+      - name: Upload to Google Drive
+        run: |
+          echo "📁 Simulasi upload ke Google Drive"
+          echo "Artifacts disimpan ke GitHub. Untuk produksi: gunakan gdrive/rclone."    
