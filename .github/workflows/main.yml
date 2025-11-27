@@ -64,7 +64,12 @@ jobs:
       - name: Get latest MLflow Run ID
         run: |
           RUN_ID=$(ls -t MLproject/mlruns/0/ | head -1)
+          if [ -z "$RUN_ID" ]; then
+            echo "No runs found in mlruns/0/"
+            exit 1
+          fi
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+          echo "Run ID: $RUN_ID"
 
       - name: Find MLflow Model Path
         run: |
