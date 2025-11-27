@@ -33,7 +33,7 @@ jobs:
       run: echo "MLFLOW_TRACKING_URI=file://$(pwd)/mlruns" >> $GITHUB_ENV
 
     - name: Run mlflow project
-      working-directory: MLProject
+      working-directory: MLproject
       run: mlflow run . -e main -P data_path=diabetes_dataset_2019_preprocessing.csv
 
     - name: Upload to Google Drive (Skilled)
