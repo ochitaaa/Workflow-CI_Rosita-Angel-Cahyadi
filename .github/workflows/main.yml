@@ -57,6 +57,6 @@ jobs:
 
       - name: Debug mlruns structure
         run: |
-          find mlruns -name "model" -type d
+          find MLproject/mlruns -name "model" -type d
           echo "=== Full mlruns structure ==="
-          ls -R mlruns/    
+          ls -R MLproject/mlruns/   
