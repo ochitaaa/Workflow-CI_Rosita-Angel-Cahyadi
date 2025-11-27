@@ -61,6 +61,9 @@ def main(args):
     print("Accuracy:", acc)
     print("\nClassification Report:\n", classification_report(y_test, preds))
 
+    # Simpan model ke MLflow (untuk build-docker)
+    mlflow.sklearn.log_model(model, "model")
+    
     # Save artifacts
     os.makedirs("artifacts", exist_ok=True)
     with open("artifacts/model.pkl", "wb") as f:
