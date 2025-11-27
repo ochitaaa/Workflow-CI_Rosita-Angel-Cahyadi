@@ -66,32 +66,27 @@ jobs:
           RUN_ID=$(ls -t MLproject/mlruns/0/ | head -1)
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
 
-      - name: Build Docker Model
-        uses: docker/setup-buildx-action@v3
-
-      - name: Debug Secrets
-        env:
-          USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Install Docker
         run: |
-          if [ -z "$USERNAME" ]; then
-            echo "DOCKER_USERNAME is empty!"
-          else
-            echo "DOCKER_USERNAME = $USERNAME"
-          fi
-          if [ -z "$PASSWORD" ]; then
-            echo "DOCKER_PASSWORD is empty!"
-          else
-            echo "DOCKER_PASSWORD is set (length: ${#PASSWORD})"
-          fi
+          sudo apt-get update
+          sudo apt-get install -y ca-certificates curl gnupg
+          sudo install -m 0755 -d /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+          sudo chmod a+r /etc/apt/keyrings/docker.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+          sudo usermod -aG docker $USER
+          # HAPUS: newgrp docker
 
       - name: Log in to Docker Hub
         run: |
-          echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-          echo "Logged in to Docker Hub"
+          echo ${{ secrets.DOCKER_PASSWORD }} | sudo docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
-      - name: Build and Push Docker Image
+      - name: Build Docker Model
         run: |
-          mlflow models build-docker -m "file://$(pwd)/MLProject/mlruns/0/$RUN_ID/model" -n mlflow-diabetes-model
-          docker tag mlflow-diabetes-model ${{ secrets.DOCKER_USERNAME }}/mlflow-diabetes-model:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/mlflow-diabetes-model:latest
+          sudo mlflow models build-docker -m "file://$(pwd)/MLproject/mlruns/0/$RUN_ID/model" -n ${{ secrets.DOCKER_USERNAME }}/mlflow-diabetes-model
+
+      - name: Push to Docker Hub
+        run: |
+          sudo docker push ${{ secrets.DOCKER_USERNAME }}/mlflow-diabetes-model
