@@ -81,11 +81,8 @@ jobs:
           echo "MODEL_PATH=$MODEL_PATH" >> $GITHUB_ENV
           echo "Model found at: $MODEL_PATH"
 
-      - name: Install Docker
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker.io
-          sudo usermod -aG docker $USER
+      - name: Set up Docker
+        uses: docker/setup-docker@v3
 
       - name: Build Docker Model
         run: |
