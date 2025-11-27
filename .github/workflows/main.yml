@@ -10,38 +10,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Set up job
-      run: echo "🚀 Starting MLflow retraining job..."
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Run actions/checkout@v3
-      uses: actions/checkout@v3
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: MLproject/conda.yaml
+          activate-environment: mlflow-env
+          auto-activate-base: false
 
-    - name: Set up Python 3.12.7
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.12.7'
+      - name: Verify Conda Environment
+        shell: bash -l {0}
+        run: |
+          conda info
+          echo "✅ Conda environment ready"
 
-    - name: Check Env
-      run: |
-        python --version
-        pip --version
+      - name: Ensure dataset exists
+        shell: bash -l {0}
+        run: |
+          echo "📂 Checking dataset file..."
+          if [ ! -f "MLproject/diabetes_dataset_2019_preprocessing.csv" ]; then
+            echo "❌ Dataset not found! Please add diabetes_dataset_2019_preprocessing.csv to MLproject/"
+            exit 1
+          fi
+          echo "✅ Dataset found"
 
-    - name: Install dependencies
-      run: |
-        pip install mlflow==2.19.0 cloudpickle==3.0.0 lz4==4.3.2 numpy==1.26.4 pandas==2.2.2 psutil==5.9.0 scikit-learn==1.6.1 scipy==1.13.1 matplotlib seaborn
+      - name: Run MLflow Project (Training)
+        shell: bash -l {0}
+        run: |
+          cd MLproject
+          echo "🚀 Running MLflow project..."
+          mlflow run . -P data_path="diabetes_dataset_2019_preprocessing.csv"
+          echo "✅ Model trained successfully"
 
-    - name: Run mlflow project
-      working-directory: MLproject
-      run: mlflow run . -e main -P data_path=diabetes_dataset_2019_preprocessing.csv
-
-    - name: Upload to Google Drive (Skilled)
-      run: |
-        echo "📁 [Skilled Criteria] Simulasi upload ke Google Drive"
-        echo "Lokasi artefak lokal: $(pwd)/mlruns"
-        echo "Untuk implementasi nyata: integrasikan dengan gdrive/rclone/GCS."
-
-    - name: Upload MLflow artifacts to GitHub
-      uses: actions/upload-artifact@v4
-      with:
-        name: mlflow-artifacts
-        path: mlruns/
+      - name: Upload MLflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlflow-artifacts
+          path: mlruns/
