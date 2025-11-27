@@ -1,4 +1,4 @@
-name: CI - MLflow Retrain
+name: Workflow CI
 
 on:
   push:
@@ -24,25 +24,25 @@ jobs:
         shell: bash -l {0}
         run: |
           conda info
-          echo "✅ Conda environment ready"
+          echo "Conda environment ready"
 
       - name: Ensure dataset exists
         shell: bash -l {0}
         run: |
-          echo "📂 Checking dataset file..."
+          echo "Checking dataset file..."
           if [ ! -f "MLproject/diabetes_dataset_2019_preprocessing.csv" ]; then
-            echo "❌ Dataset not found! Please add diabetes_dataset_2019_preprocessing.csv to MLproject/"
+            echo "Dataset not found! Please add diabetes_dataset_2019_preprocessing.csv to MLproject/"
             exit 1
           fi
-          echo "✅ Dataset found"
+          echo "Dataset found"
 
-      - name: Run MLflow Project (Training)
+      - name: Run MLflow Project
         shell: bash -l {0}
         run: |
           cd MLproject
-          echo "🚀 Running MLflow project..."
+          echo "Running MLflow project..."
           mlflow run . -P data_path="diabetes_dataset_2019_preprocessing.csv"
-          echo "✅ Model trained successfully"
+          echo "Model trained successfully"
 
       - name: Upload MLflow artifacts
         uses: actions/upload-artifact@v4
@@ -52,5 +52,5 @@ jobs:
 
       - name: Upload to Google Drive
         run: |
-          echo "📁 Simulasi upload ke Google Drive"
+          echo "Simulasi upload ke Google Drive"
           echo "Artifacts disimpan ke GitHub. Untuk produksi: gunakan gdrive/rclone."    
