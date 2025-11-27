@@ -64,21 +64,24 @@ def main(args):
     # Simpan model ke MLflow (untuk build-docker)
     mlflow.sklearn.log_model(model, "model")
     
-    # Save artifacts
-    os.makedirs("artifacts", exist_ok=True)
-    with open("artifacts/model.pkl", "wb") as f:
-        pickle.dump(model, f)
-
-    # Confusion Matrix
-    cm = confusion_matrix(y_test, preds)
-    plt.figure(figsize=(6, 4))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
-    plt.title("Confusion Matrix")
-    plt.savefig("artifacts/training_confusion_matrix.png")
-    plt.close()
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data_path", type=str, required=True)
-    args = parser.parse_args()
-    main(args)
+    # Salin model ke Docker
+    import shutil
+    run_id = mlflow.active_run().info.run_id
+    model_artifact_path = os.path.join("mlruns", "0", run_id, "model")
+    os.makedirs(model_artifact_path, exist_ok=True)
+    
+    # Salin model.pkl ke folder model
+    shutil.copy("artifacts/model.pkl", os.path.join(model_artifact_path, "model.pkl"))
+    
+    # Buat file MLmodel minimal
+    with open(os.path.join(model_artifact_path, "MLmodel"), "w") as f:
+        f.write("""
+artifact_path: model
+flavors:
+  python_function:
+    loader_module: mlflow.sklearn
+    python_version: 3.10
+  sklearn:
+    pickled_model: model.pkl
+    sklearn_version: 1.6.1
+""")
