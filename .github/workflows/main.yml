@@ -50,11 +50,11 @@ jobs:
           name: mlflow-artifacts
           path: mlruns/
 
-       - name: Debug mlruns structure
-         run: |
-           find MLproject/mlruns -name "model" -type d
-           echo "=== Full mlruns structure ==="
-           ls -R MLproject/mlruns/
+      - name: Debug mlruns structure
+        run: |
+          find MLproject/mlruns -name "model" -type d
+          echo "=== Full mlruns structure ==="
+          ls -R MLproject/mlruns/
 
       - name: Upload to GitHub
         run: |
