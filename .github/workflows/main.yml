@@ -61,3 +61,34 @@ jobs:
           echo "Simulasi upload ke GitHub"
           echo "Download dari tab 'Artifacts' di halaman workflow."
    
+      - name: Get latest MLflow Run ID
+        run: |
+          RUN_ID=$(ls -t MLproject/mlruns/0/ | head -1)
+          if [ -z "$RUN_ID" ]; then
+            echo "No run found in mlruns/0/"
+            exit 1
+          fi
+          echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+          echo "Run ID: $RUN_ID"
+
+      - name: Find MLflow Model Path
+        run: |
+          MODEL_PATH=$(find MLproject/mlruns/0/$RUN_ID -type d -name "model" -path "*/artifacts/model" | head -1)
+          if [ -z "$MODEL_PATH" ]; then
+            echo "Model folder not found in artifacts!"
+            exit 1
+          fi
+          echo "MODEL_PATH=$MODEL_PATH" >> $GITHUB_ENV
+          echo "Model found at: $MODEL_PATH"
+
+      - name: Install Docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+          sudo usermod -aG docker $USER
+          echo "Docker installed"
+
+      - name: Build Docker Model
+        run: |
+          mlflow models build-docker -m "file://$(pwd)/$MODEL_PATH" -n mlflow-diabetes-model
+          echo "Docker image built"
