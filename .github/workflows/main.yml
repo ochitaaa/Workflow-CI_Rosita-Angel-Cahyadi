@@ -20,6 +20,11 @@ jobs:
           activate-environment: mlflow-env
           auto-activate-base: false
 
+      - name: Activate Conda Environment
+        shell: bash -l {0}
+        run: conda activate mlflow-env
+
+
       - name: Verify Conda Environment
         shell: bash -l {0}
         run: |
@@ -76,6 +81,8 @@ jobs:
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
 
       - name: Build and Push
+        shell: bash -l {0}
         run: |
+          conda activate mlflow-env
           mlflow models build-docker -m "file://$(pwd)/MLproject/mlruns/0/$RUN_ID/model" -n ${{ secrets.DOCKER_USERNAME }}/mlflow-diabetes-model
           docker push ${{ secrets.DOCKER_USERNAME }}/mlflow-diabetes-model
